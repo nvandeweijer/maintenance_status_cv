@@ -7,6 +7,7 @@ from tqdm.notebook import tqdm
 import random
 import argparse
 
+
 def main(
     tabular_path: str = "/content/drive/MyDrive/nicole/after_businessrules.csv",
     image_dir_path: str = "/content/drive/MyDrive/nicole/part1/images_all/final_images/*/",
@@ -99,6 +100,8 @@ def main(
         condition = rows_matched.maintenance_status.values.item()
         if condition != path.split("/")[-2]:
           continue
+
+        # if you want to include the 'good' maintenance status, comment the following line
         if condition == "good":
           continue
 
@@ -140,6 +143,7 @@ def main(
 
     print(f"Done! data saved at {save_at}")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download images from the csv.")
     
@@ -167,4 +171,3 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
 
     main(**args)
-    
