@@ -5,7 +5,7 @@ import torch
 
 from PIL import Image
 from glob import glob
-from roomtype_classifier import RoomEfficientNet
+from roomtype.roomtype_classifier import RoomEfficientNet
 from torchvision import transforms
 
 

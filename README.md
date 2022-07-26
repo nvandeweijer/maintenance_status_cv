@@ -9,7 +9,7 @@ To download photos, the script `download_images.py` can be used. This downloads 
 
 ## Room Classification
 Some room types can be excluded to improve the classifier. [This code](https://github.com/tae898/room-classification) and a trained model, which is also available for download there, are used for this. 
-The images below a specific percentage were moved to another folder using `exclude_roomtypes.py` and `roomtype_classifier.py`.
+The images below a specific percentage were moved to another folder using `roomtype/exclude_roomtypes.py` and `roomtype/roomtype_classifier.py`.
 
 
 ## Create JSON files
