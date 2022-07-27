@@ -1,8 +1,13 @@
 import numpy as np
 import os
-from PIL import Image
+import torch
+
 from collections import Counter
+from PIL import Image
+from roomtype.roomtype_classifier import RoomEfficientNet
 from torch.utils.data import Dataset
+from torchvision import transforms
+
 
 def crop_center_square(img: Image):
     if img.mode != "RGB":
@@ -96,3 +101,51 @@ def image_paths_labels(data, image_root_dir):
             else: 
               continue
     return np.array(image_paths), np.array(labels)
+
+
+def create_annotations_dict(image_path):
+    labels: dict = {
+            "interior": 0,
+            "bathroom": 1,
+            "bedroom": 2,
+            "exterior": 3,
+            "living_room": 4,
+            "kitchen": 5,
+            "dining_room": 6,
+        }
+
+    transform = transforms.Compose([
+    transforms.CenterCrop(300),
+    transforms.ToTensor(),
+    transforms.Normalize(
+    mean = [0.5, 0.5, 0.5],
+    std = [0.22, 0.22, 0.22])])
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    net = RoomEfficientNet.load_from_checkpoint(
+    checkpoint_path="/content/drive/MyDrive/nicole/part1/model_v2.ckpt", num_classes=7, efficientnet="efficientnet-b3")
+    net.to(device)
+    net.eval()
+    net.freeze()
+
+    imgI = Image.open(image_path)
+    try:
+        img_t = transform(imgI)
+    except:
+        return
+
+    batch_t = torch.unsqueeze(img_t, 0)
+    output = net(batch_t.to(device))
+    prob = torch.nn.functional.softmax(output, dim=1)
+    prob = prob[0]
+
+    percentage_list = []
+    for i in range(len(prob)):
+        percentage_list.append(round(prob[i].item()*100, 4))
+
+    annotations = {}
+    for label, idx_label in labels.items(): 
+        annotations[label]=prob[idx_label]
+
+    return annotations
+    
