@@ -1,15 +1,18 @@
 """This scripts load tabular data and images, and save them into a nice / clean format."""
-import pandas as pd
-import os
-from glob import glob
-import json
-from tqdm.notebook import tqdm
-import random
 import argparse
+import json
+import os
+import pandas as pd
+import random
+
+from glob import glob
+from tqdm.notebook import tqdm
+
+from utils import create_annotations_dict
 
 
 def main(
-    tabular_path: str = "/content/drive/MyDrive/nicole/after_businessrules.csv",
+    tabular_path: str = "/Users/nicolevandeweijer/Documents/visual_studio_projects/maintenance_status_cv/after_businessrules.csv",
     image_dir_path: str = "/content/drive/MyDrive/nicole/part1/images_all/final_images/*/",
     save_at: str = "/content/drive/MyDrive/nicole/excellent_good.json",
     val_ratio: float=0.1,
@@ -73,21 +76,21 @@ def main(
         "woonplaats",
         "number_of_photos",
         "foldername",
-        # "pred_part1_class0"
     ],
 ) -> None:
     """Run the data cleaning pipeline.
     Args
     ----
-    tabular_path:
-    image_dir_path:
-    features_of_interest:
-    save_at:
+    tabular_path: the path to the csv file.
+    image_dir_path: the root directory where the images are saved.
+    features_of_interest: the features of interest you want to include in the json file.
+    save_at: the path to the json file.
+
     """
 
     tabular_data = pd.read_csv(tabular_path)
     tabular_data = tabular_data.dropna(how="all", axis=1)
-    imagefolder_paths = glob(os.path.join(image_dir_path, "*"))
+    imagefolder_paths = glob(os.path.join(image_dir_path, "*", "*"))
     data = []
     for path in tqdm(imagefolder_paths):
         foldername = path.split("/")[-1]
@@ -101,7 +104,7 @@ def main(
         if condition != path.split("/")[-2]:
           continue
 
-        # if you want to include the 'good' maintenance status, comment the following line
+        # if you want to include the 'good' maintenance status, comment the following lines
         if condition == "good":
           continue
 
@@ -113,7 +116,11 @@ def main(
  
         for path in images_paths:
             image_path = path.split("/")[-1]
-            room_types.append({"image_path": image_path})
+            image_path = os.path.join('images', condition, foldername, image_path)
+
+            # predict roomtypes
+            annotations = create_annotations_dict(image_path)
+            room_types.append({"image_path": image_path, "annotations": annotations})
 
         data.append(
             {
@@ -150,21 +157,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tabular_path",
         type=str,
-        default="/content/drive/MyDrive/nicole/after_businessrules.csv",
+        default="/Users/nicolevandeweijer/Documents/visual_studio_projects/maintenance_status_cv/after_businessrules.csv",
         help="Path to the csv file.",
     )
 
     parser.add_argument(
         "--image_dir_path",
         type=str,
-        default="/content/drive/MyDrive/nicole/part1/images_all/final_images/*/",
+        default="/Users/nicolevandeweijer/PycharmProjects/thesis_2550019/part1/images_all",
         help="Directory where images are saved.",
     )
 
     parser.add_argument(
         "--save_at",
         type=str,
-        default="/content/drive/MyDrive/nicole/excellent_good.json",
+        default="/Users/nicolevandeweijer/Documents/visual_studio_projects/maintenance_status_cv/excellent_bad.json",
         help="Directory where the json file will be saved",
     )
 
