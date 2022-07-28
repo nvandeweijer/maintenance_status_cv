@@ -4,9 +4,9 @@ import shutil
 import torch
 
 from PIL import Image
-from glob import glob
 from roomtype.roomtype_classifier import RoomEfficientNet
 from torchvision import transforms
+from utils import get_key
 
 
 transform = transforms.Compose([
@@ -17,11 +17,6 @@ transform = transforms.Compose([
     std = [0.22, 0.22, 0.22])
 ])
 
-def get_key(val, my_dict):
-    for key, value in my_dict.items():
-         if val == value:
-             return key
-    return "key doesn't exist"
 
 def main(images):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

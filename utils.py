@@ -66,13 +66,14 @@ class ImageDataset(Dataset):
     def __init__(self, 
                  split, 
                  image_size, 
-                 image_paths, 
+                 image_paths=None, 
                  labels=None, 
                  data_size='large', 
                  transform=None, 
                  data_path="/content/drive/MyDrive/nicole/data_after90.json",
                  image_root_dir = "/content/drive/MyDrive/nicole/part1/images_all/final_images",
                  classes: dict = {"excellent": 1, "bad": 0},
+                 desired_rooms: list = {"bathroom": 0.8, "kitchen": 0.8, "living_room": 0.8},
                  balance_classes: bool = True):
         self.split = split
         self.image_size = image_size
@@ -84,6 +85,7 @@ class ImageDataset(Dataset):
         self.classes = classes
         self.balance_classes = balance_classes
         self.image_root_dir = image_root_dir
+        self.desired_rooms = desired_rooms
         self._load_data()
 
     def _load_data(self):
@@ -219,4 +221,41 @@ def create_annotations_dict(image_path):
         annotations[label]=prob[idx_label]
 
     return annotations
+
+
+def balance_classes(img_paths, labels):
+    classes: dict = {"excellent": 1, "bad": 0}
+    balanced_img_paths = []
+    balanced_labels = []
+
+    counts = Counter(labels)
+    min_class = min(counts, key=counts.get)
+    class_counts = {class_int: 0 for class_int in list(classes.values())}
+
+    for img_path, lab in zip(img_paths, labels):
+      if class_counts[lab] >= counts[min_class]:
+        continue
+      class_counts[lab] += 1
+      balanced_img_paths.append(img_path)              
+      balanced_labels.append(lab)
+
+    return balanced_img_paths, balanced_labels
+
+
+def image_paths_labels(image_root_dir, data):
+    image_paths = []
+    labels = []
+    classes: dict = {"excellent": 1, "bad": 0}
+
+    for house in data:
+        label_str = house["maintenance_status"]
+        label = classes[label_str.lower()]
+        for rt in house["room_types"]:
+            if label_str == "excellent" or label_str == "bad":
+                image_paths.append(os.path.join(image_root_dir, label_str, house["house"], rt["image_path"]))
+                labels.append(label)
+            else: 
+              continue
+    return np.array(image_paths), np.array(labels)
+
     
