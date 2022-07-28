@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import os
 import torch
@@ -53,23 +54,85 @@ def balance_classes(img_paths, labels):
     return balanced_img_paths, balanced_labels
 
 
-class ConditionDataset(Dataset):
-    def __init__(self, image_size, image_paths, labels=None, data_size='large', transform=None):
+class ImageDataset(Dataset):
+    def __init__(self, 
+                 split, 
+                 image_size, 
+                 image_paths, 
+                 labels=None, 
+                 data_size='large', 
+                 transform=None, 
+                 data_path="/content/drive/MyDrive/nicole/data_after90.json",
+                 image_root_dir = "/content/drive/MyDrive/nicole/part1/images_all/final_images",
+                 classes: dict = {"excellent": 1, "bad": 0},
+                 balance_classes: bool = True):
+        self.split = split
         self.image_size = image_size
         self.image_paths = image_paths
         self.labels = labels
         self.transform = transform
         self.data_size = data_size
+        self.data_path = data_path
+        self.classes = classes
+        self.balance_classes = balance_classes
+        self.image_root_dir = image_root_dir
+        self._load_data()
 
-        if data_size == "small":
-          self.image_paths = image_paths[:20]
-        elif data_size == "medium":
-          self.image_paths = image_paths[:50]
-        else:
-          pass
+    def _load_data(self):
+        with open(self.data_path, "r") as stream:
+            self.data = json.load(stream)[self.split]
+        
+        self.image_paths = []
+        self.labels = []
+
+        counts = []
+        for sample in self.data:
+          if sample["maintenance_status"] == "excellent":
+            cond = 1
+          elif sample["maintenance_status"] == "bad":
+            cond = 0
+          counts.extend([cond] * len(sample["room_types"]))
+        counts = dict(Counter(counts))  
+        min_class = min(counts, key=counts.get)
+        self.class_counts = {class_int: 0 for class_int in list(self.classes.values())}
+
+        for house in self.data:
+            label_str = house["maintenance_status"]
+            label = self.classes[label_str.lower()]
+
+            for rt in house["room_types"]:
+                pred_type = max(rt["annotation"], key=rt["annotation"].get)
+                pred_prob = rt["annotation"][pred_type]
+
+                if pred_type not in list(self.desired_rooms):
+                    continue
+                if pred_prob < self.desired_rooms[pred_type]:
+                    continue
+
+                if self.split.lower() == "train":
+                    if self.data_size.lower() == "small":
+                        if self.balance_classes and self.class_counts[label] >= counts[0]*0.2:
+                            continue
+                    elif self.data_size.lower() == "medium":
+                        if self.balance_classes and self.class_counts[label] >= counts[0]*0.5:
+                            continue
+                    else:
+                        if self.balance_classes and self.class_counts[label] >= counts[min_class]:
+                            continue
+                else:
+                    if self.balance_classes and self.class_counts[label] >= counts[min_class]:
+                        continue 
+                
+                self.class_counts[label] += 1
+
+                self.image_paths.append(
+                    os.path.join(self.image_root_dir, label_str, house["house"], rt["image_path"])
+                )
+                self.labels.append(label)
 
     def __len__(self):
         return len(self.image_paths)
+
     def __getitem__(self, idx):
         img = Image.open(self.image_paths[idx])
         img = img.convert("RGB")
