@@ -10,6 +10,14 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
+def get_key(index, labels):
+    for key, value in labels.items():
+         if index == value:
+             return key
+ 
+    return "key doesn't exist"
+
+
 def crop_center_square(img: Image):
     if img.mode != "RGB":
         return None
