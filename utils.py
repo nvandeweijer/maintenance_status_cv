@@ -258,4 +258,36 @@ def image_paths_labels(image_root_dir, data):
               continue
     return np.array(image_paths), np.array(labels)
 
+
+class ConditionDataset(Dataset):
+    def __init__(self, image_size, image_paths, labels=None, data_size='large', transform=None):
+        self.image_size = image_size
+        self.image_paths = image_paths
+        self.labels = labels
+        self.transform = transform
+        self.data_size = data_size
+
+        if data_size == "small":
+          self.image_paths = image_paths[:20]
+        elif data_size == "medium":
+          self.image_paths = image_paths[:50]
+        else:
+          pass
+
+    def __len__(self):
+        return len(self.image_paths)
+    def __getitem__(self, idx):
+        img = Image.open(self.image_paths[idx])
+        img = img.convert("RGB")
+        img = crop_center_square(img)
+        img = img.resize(size=(self.image_size, self.image_size))
+        img = np.array(img)
+
+        if self.transform:
+            img = self.transform(image=img)["image"]
+        if self.labels is not None:
+            label = self.labels[idx]
+            return {"image_path": self.image_paths[idx], "image": img, "label": label}
+        else:
+            return {"image": img}
     
